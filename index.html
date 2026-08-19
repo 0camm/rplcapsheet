@@ -538,6 +538,8 @@ function showAuthedView(){
   authedView.classList.remove('hidden');
   document.getElementById('adminSub').textContent = adminName ? `Logged in as ${adminName}` : 'Manage tiers & players';
   renderAdminTiers(); renderAdminPlayers(); populateTierSelect();
+  const activeTab = document.querySelector('.admin-tab.active');
+  if(activeTab && activeTab.dataset.tab === 'log') renderAuditLog();
 }
 
 function openAdmin(){
