@@ -1,4 +1,5 @@
 const { setSessionCookie } = require('./_lib/auth');
+const { appendAudit } = require('./_lib/audit');
 
 module.exports = async function handler(req, res) {
   if (req.method !== 'POST') {
@@ -22,6 +23,7 @@ module.exports = async function handler(req, res) {
   if (!password || password !== process.env.ADMIN_PASSWORD) {
     // Small delay to make brute forcing slightly less trivial.
     await new Promise(r => setTimeout(r, 400));
+    await appendAudit('Failed admin login attempt', req);
     return res.status(401).json({ error: 'Incorrect password' });
   }
 
@@ -30,5 +32,6 @@ module.exports = async function handler(req, res) {
   } catch (e) {
     return res.status(500).json({ error: e.message });
   }
+  await appendAudit('Admin logged in', req);
   return res.status(200).json({ ok: true });
 };

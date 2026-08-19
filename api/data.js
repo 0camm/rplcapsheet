@@ -1,6 +1,7 @@
 const { getRedis } = require('./_lib/redis');
 const { isAdminRequest } = require('./_lib/auth');
 const { DEFAULT_DATA } = require('./_lib/default-data');
+const { appendAudit } = require('./_lib/audit');
 
 const KEY = 'rpl_capsheet_data';
 const MAX_TIERS = 40;
@@ -73,10 +74,15 @@ module.exports = async function handler(req, res) {
     const err = validateData(body);
     if (err) return res.status(400).json({ error: err });
 
+    const action = (body && typeof body.action === 'string' && body.action.trim())
+      ? body.action.trim().slice(0, 200)
+      : 'Capsheet updated';
+
     try {
       const redis = getRedis();
       const clean = sanitize(body);
       await redis.set(KEY, clean);
+      await appendAudit(action, req);
       return res.status(200).json(clean);
     } catch (e) {
       return res.status(500).json({ error: e.message });

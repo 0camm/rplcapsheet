@@ -174,6 +174,20 @@ body{
 .logout-btn{width:100%;background:var(--s2);border:1px solid var(--b);border-radius:10px;padding:11px;color:var(--tx2);font-family:'Inter',sans-serif;font-size:12px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;cursor:pointer;transition:all .15s;}
 .logout-btn:hover{border-color:rgba(232,0,29,.4);color:var(--red);}
 
+/* audit log */
+.log-row{padding:10px 16px;border-bottom:1px solid var(--b2);display:flex;align-items:center;justify-content:space-between;gap:10px;}
+.log-row:last-child{border-bottom:none;}
+.log-main{min-width:0;}
+.log-action{font-size:12.5px;color:var(--tx);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.log-action.warn{color:var(--am);}
+.log-meta{display:flex;flex-direction:column;align-items:flex-end;gap:1px;flex-shrink:0;}
+.log-time{font-size:10px;color:var(--mu);font-family:'JetBrains Mono',monospace;white-space:nowrap;}
+.log-ip{font-size:9px;color:var(--mu2);font-family:'JetBrains Mono',monospace;white-space:nowrap;}
+.log-refresh-row{padding:10px 16px;border-bottom:1px solid var(--b);position:sticky;top:0;background:var(--s1);display:flex;align-items:center;justify-content:space-between;gap:10px;}
+.log-refresh-btn{background:var(--s2);border:1px solid var(--b);border-radius:7px;padding:6px 12px;color:var(--tx2);font-family:'Inter',sans-serif;font-size:11px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;cursor:pointer;transition:all .15s;}
+.log-refresh-btn:hover{color:#fff;border-color:rgba(255,255,255,.15);}
+.log-title{font-size:10px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--mu);}
+
 .hidden{display:none !important}
 .skeleton{padding:50px 20px;text-align:center;color:var(--mu);font-size:12px;}
 
@@ -254,6 +268,7 @@ body{
       <button class="admin-tab active" data-tab="players">Players</button>
       <button class="admin-tab" data-tab="tiers">Tiers</button>
       <button class="admin-tab" data-tab="add">Add Player</button>
+      <button class="admin-tab" data-tab="log">Log</button>
     </div>
     <div class="admin-body">
       <div class="admin-error" id="adminError"></div>
@@ -287,6 +302,14 @@ body{
           </div>
           <button class="add-submit" id="addPlayerBtn">Add Player</button>
         </div>
+      </div>
+
+      <div class="admin-tab-panel hidden" id="tab-log">
+        <div class="log-refresh-row">
+          <span class="log-title">Recent Activity</span>
+          <button class="log-refresh-btn" id="refreshLogBtn">Refresh</button>
+        </div>
+        <div id="auditLogList"></div>
       </div>
     </div>
     <div class="logout-row"><button class="logout-btn" id="logoutBtn">Log Out</button></div>
@@ -352,13 +375,14 @@ function updateModeChip(){
   }
 }
 
-async function saveToServer(successMsg){
+async function saveToServer(action){
   saving = true;
   try{
-    const saved = await apiPost('/api/data', data);
+    const payload = Object.assign({}, data, { action: action || 'Capsheet updated' });
+    const saved = await apiPost('/api/data', payload);
     data = saved;
     setLive('SYNCED', 'on');
-    if(successMsg) toast(successMsg, 'green');
+    if(action) toast(action, 'green');
   }catch(e){
     setLive('SYNC ERROR', 'err');
     if(e.message && e.message.toLowerCase().includes('not authenticated')){
@@ -429,8 +453,9 @@ function render(filter){
             const val = input.value.trim();
             if(!val){ input.value = tier.players[p.idx]; return; }
             const prev = tier.players[p.idx];
+            if(val === prev) return;
             tier.players[p.idx] = val;
-            try{ await saveToServer('Player updated'); } catch(e){ tier.players[p.idx] = prev; input.value = prev; }
+            try{ await saveToServer(`Renamed "${prev}" to "${val}" (${tier.label})`); } catch(e){ tier.players[p.idx] = prev; input.value = prev; }
           });
           input.addEventListener('keydown', e=>{ if(e.key==='Enter') input.blur(); });
         }
@@ -527,8 +552,49 @@ document.querySelectorAll('.admin-tab').forEach(tab=>{
     tab.classList.add('active');
     document.querySelectorAll('.admin-tab-panel').forEach(p=>p.classList.add('hidden'));
     document.getElementById('tab-'+tab.dataset.tab).classList.remove('hidden');
+    if(tab.dataset.tab === 'log') renderAuditLog();
   });
 });
+
+/* -- audit log tab -- */
+function timeAgo(ts){
+  const diff = Math.max(0, Date.now() - ts);
+  const m = Math.floor(diff / 60000);
+  if(m < 1) return 'just now';
+  if(m < 60) return m + 'm ago';
+  const h = Math.floor(m / 60);
+  if(h < 24) return h + 'h ago';
+  const d = Math.floor(h / 24);
+  if(d < 7) return d + 'd ago';
+  return new Date(ts).toLocaleDateString();
+}
+async function renderAuditLog(){
+  const wrap = document.getElementById('auditLogList');
+  wrap.innerHTML = '<div style="padding:24px 16px;text-align:center;color:var(--mu);font-size:12px;">Loading...</div>';
+  try{
+    const { entries } = await apiGet('/api/audit');
+    if(!entries || entries.length === 0){
+      wrap.innerHTML = '<div style="padding:24px 16px;text-align:center;color:var(--mu);font-size:12px;">No activity yet</div>';
+      return;
+    }
+    wrap.innerHTML = '';
+    entries.forEach(e=>{
+      const row = document.createElement('div');
+      row.className = 'log-row';
+      const isWarn = /failed|logged out/i.test(e.action || '');
+      row.innerHTML = `
+        <div class="log-main"><div class="log-action${isWarn?' warn':''}">${escapeHtml(e.action || '')}</div></div>
+        <div class="log-meta">
+          <span class="log-time">${escapeHtml(timeAgo(e.ts))}</span>
+          <span class="log-ip">${escapeHtml(e.ip || '')}</span>
+        </div>`;
+      wrap.appendChild(row);
+    });
+  }catch(err){
+    wrap.innerHTML = `<div style="padding:24px 16px;text-align:center;color:var(--red);font-size:12px;">${escapeHtml(err.message || 'Could not load log')}</div>`;
+  }
+}
+document.getElementById('refreshLogBtn').addEventListener('click', renderAuditLog);
 
 /* -- login / logout -- */
 async function doLogin(){
@@ -578,8 +644,9 @@ function renderAdminTiers(){
       const v = labelInput.value.trim();
       if(!v){ labelInput.value = tier.label; return; }
       const prev = tier.label;
+      if(v === prev) return;
       tier.label = v;
-      try{ await saveToServer('Tier updated'); render(document.getElementById('playerSearch').value); }
+      try{ await saveToServer(`Renamed tier "${prev}" to "${v}"`); render(document.getElementById('playerSearch').value); }
       catch(e){ tier.label = prev; labelInput.value = prev; }
     });
 
@@ -595,7 +662,7 @@ function renderAdminTiers(){
       if(tier.players.length && !confirm(`Delete "${tier.label}"? ${tier.players.length} player(s) in this tier will also be removed.`)) return;
       const removed = data.tiers.splice(idx,1);
       try{
-        await saveToServer('Tier deleted');
+        await saveToServer(`Deleted tier "${tier.label}" (${tier.players.length} player${tier.players.length===1?'':'s'})`);
         renderAdminTiers(); populateTierSelect(); renderAdminPlayers();
         render(document.getElementById('playerSearch').value);
       }catch(e){ data.tiers.splice(idx,0,removed[0]); }
@@ -615,7 +682,7 @@ document.getElementById('addTierBtn').addEventListener('click', async ()=>{
   data.tiers.push({ id: 't_'+Date.now(), label: val, players: [] });
   inp.value = '';
   try{
-    await saveToServer('Tier added');
+    await saveToServer(`Added tier "${val}"`);
     renderAdminTiers(); populateTierSelect();
     render(document.getElementById('playerSearch').value);
   }catch(e){ data.tiers.pop(); }
