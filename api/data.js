@@ -1,5 +1,5 @@
 const { getRedis } = require('./_lib/redis');
-const { isAdminRequest } = require('./_lib/auth');
+const { getAdminSession } = require('./_lib/auth');
 const { DEFAULT_DATA } = require('./_lib/default-data');
 const { appendAudit } = require('./_lib/audit');
 
@@ -57,13 +57,13 @@ module.exports = async function handler(req, res) {
   }
 
   if (req.method === 'POST' || req.method === 'PUT') {
-    let authed = false;
+    let session = null;
     try {
-      authed = isAdminRequest(req);
+      session = getAdminSession(req);
     } catch (e) {
       return res.status(500).json({ error: e.message });
     }
-    if (!authed) {
+    if (!session) {
       return res.status(401).json({ error: 'Not authenticated. Log in to the admin panel first.' });
     }
 
@@ -82,7 +82,7 @@ module.exports = async function handler(req, res) {
       const redis = getRedis();
       const clean = sanitize(body);
       await redis.set(KEY, clean);
-      await appendAudit(action, req);
+      await appendAudit(action, session.name);
       return res.status(200).json(clean);
     } catch (e) {
       return res.status(500).json({ error: e.message });

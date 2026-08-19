@@ -1,34 +1,27 @@
-const { getRedis } = require('./redis');
+const { isAdminRequest } = require('./_lib/auth');
+const { getAuditLog } = require('./_lib/audit');
 
-const AUDIT_KEY = 'rpl_capsheet_audit';
-const MAX_ENTRIES = 200;
-
-async function appendAudit(action, name) {
-  try {
-    const redis = getRedis();
-    const entry = {
-      action: String(action).slice(0, 200),
-      name: (name && String(name).trim()) ? String(name).trim().slice(0, 40) : 'Admin',
-      ts: Date.now()
-    };
-    await redis.lpush(AUDIT_KEY, JSON.stringify(entry));
-    await redis.ltrim(AUDIT_KEY, 0, MAX_ENTRIES - 1);
-  } catch (e) {
-    // Never let audit logging failures break the actual admin action.
-    console.error('audit log write failed', e);
+module.exports = async function handler(req, res) {
+  if (req.method !== 'GET') {
+    res.setHeader('Allow', 'GET');
+    return res.status(405).json({ error: 'Method not allowed' });
   }
-}
 
-async function getAuditLog(limit) {
-  const redis = getRedis();
-  const n = Math.max(1, Math.min(limit || 100, MAX_ENTRIES));
-  const raw = await redis.lrange(AUDIT_KEY, 0, n - 1);
-  return raw
-    .map(r => {
-      if (r && typeof r === 'object') return r; // some clients auto-parse JSON
-      try { return JSON.parse(r); } catch (e) { return null; }
-    })
-    .filter(Boolean);
-}
+  let authed = false;
+  try {
+    authed = isAdminRequest(req);
+  } catch (e) {
+    return res.status(500).json({ error: e.message });
+  }
+  if (!authed) {
+    return res.status(401).json({ error: 'Not authenticated. Log in to the admin panel first.' });
+  }
 
-module.exports = { appendAudit, getAuditLog };
+  try {
+    const limit = Math.min(parseInt(req.query && req.query.limit, 10) || 100, 200);
+    const entries = await getAuditLog(limit);
+    return res.status(200).json({ entries });
+  } catch (e) {
+    return res.status(500).json({ error: e.message });
+  }
+};

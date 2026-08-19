@@ -182,7 +182,7 @@ body{
 .log-action.warn{color:var(--am);}
 .log-meta{display:flex;flex-direction:column;align-items:flex-end;gap:1px;flex-shrink:0;}
 .log-time{font-size:10px;color:var(--mu);font-family:'JetBrains Mono',monospace;white-space:nowrap;}
-.log-ip{font-size:9px;color:var(--mu2);font-family:'JetBrains Mono',monospace;white-space:nowrap;}
+.log-admin{font-size:9px;color:var(--mu2);font-family:'JetBrains Mono',monospace;white-space:nowrap;}
 .log-refresh-row{padding:10px 16px;border-bottom:1px solid var(--b);position:sticky;top:0;background:var(--s1);display:flex;align-items:center;justify-content:space-between;gap:10px;}
 .log-refresh-btn{background:var(--s2);border:1px solid var(--b);border-radius:7px;padding:6px 12px;color:var(--tx2);font-family:'Inter',sans-serif;font-size:11px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;cursor:pointer;transition:all .15s;}
 .log-refresh-btn:hover{color:#fff;border-color:rgba(255,255,255,.15);}
@@ -253,7 +253,11 @@ body{
 
   <!-- Logged out: login form only -->
   <div id="loginView" class="login-wrap hidden">
-    <p>Enter the admin password to unlock editing. This site is read-only for everyone else.</p>
+    <p>Enter your name and the admin password to unlock editing. This site is read-only for everyone else.</p>
+    <div class="add-field">
+      <label>Your Name</label>
+      <input type="text" id="loginName" placeholder="e.g. Alex" autocomplete="name">
+    </div>
     <div class="add-field">
       <label>Password</label>
       <input type="password" id="loginPassword" placeholder="••••••••" autocomplete="current-password">
@@ -321,6 +325,7 @@ body{
 <script>
 let data = { tiers: [] };
 let isAdmin = false;
+let adminName = null;
 let saving = false;
 
 /* ---------------- API HELPERS ---------------- */
@@ -348,6 +353,7 @@ async function boot(){
     const [d, s] = await Promise.all([ apiGet('/api/data'), apiGet('/api/session') ]);
     data = d;
     isAdmin = !!s.authed;
+    adminName = s.name || null;
     setLive('SYNCED', 'on');
   }catch(e){
     setLive('OFFLINE', 'err');
@@ -524,12 +530,13 @@ function showLoginView(){
   authedView.classList.add('hidden');
   document.getElementById('adminSub').textContent = 'Log in to manage tiers & players';
   document.getElementById('loginError').classList.remove('on');
+  document.getElementById('loginName').value = '';
   document.getElementById('loginPassword').value = '';
 }
 function showAuthedView(){
   loginView.classList.add('hidden');
   authedView.classList.remove('hidden');
-  document.getElementById('adminSub').textContent = 'Manage tiers & players';
+  document.getElementById('adminSub').textContent = adminName ? `Logged in as ${adminName}` : 'Manage tiers & players';
   renderAdminTiers(); renderAdminPlayers(); populateTierSelect();
 }
 
@@ -586,7 +593,7 @@ async function renderAuditLog(){
         <div class="log-main"><div class="log-action${isWarn?' warn':''}">${escapeHtml(e.action || '')}</div></div>
         <div class="log-meta">
           <span class="log-time">${escapeHtml(timeAgo(e.ts))}</span>
-          <span class="log-ip">${escapeHtml(e.ip || '')}</span>
+          <span class="log-admin">${escapeHtml(e.admin || '')}</span>
         </div>`;
       wrap.appendChild(row);
     });
@@ -598,15 +605,19 @@ document.getElementById('refreshLogBtn').addEventListener('click', renderAuditLo
 
 /* -- login / logout -- */
 async function doLogin(){
+  const nameInput = document.getElementById('loginName');
   const pwInput = document.getElementById('loginPassword');
   const errBox = document.getElementById('loginError');
   const btn = document.getElementById('loginBtn');
+  const name = nameInput.value.trim();
   const password = pwInput.value;
+  if(!name){ errBox.textContent = 'Enter your name'; errBox.classList.add('on'); return; }
   if(!password){ errBox.textContent = 'Enter a password'; errBox.classList.add('on'); return; }
   btn.disabled = true; btn.textContent = 'Checking...';
   try{
-    await apiPost('/api/login', { password });
+    const res = await apiPost('/api/login', { name, password });
     isAdmin = true;
+    adminName = res.name || name;
     updateModeChip();
     showAuthedView();
     render(document.getElementById('playerSearch').value);
@@ -619,11 +630,13 @@ async function doLogin(){
   }
 }
 document.getElementById('loginBtn').addEventListener('click', doLogin);
+document.getElementById('loginName').addEventListener('keydown', e=>{ if(e.key==='Enter') doLogin(); });
 document.getElementById('loginPassword').addEventListener('keydown', e=>{ if(e.key==='Enter') doLogin(); });
 
 document.getElementById('logoutBtn').addEventListener('click', async ()=>{
   try{ await apiPost('/api/logout', {}); }catch(e){}
   isAdmin = false;
+  adminName = null;
   updateModeChip();
   closeAdmin();
   render(document.getElementById('playerSearch').value);

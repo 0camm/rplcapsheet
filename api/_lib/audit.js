@@ -3,19 +3,13 @@ const { getRedis } = require('./redis');
 const AUDIT_KEY = 'rpl_capsheet_audit';
 const MAX_ENTRIES = 200;
 
-function getClientIp(req) {
-  const fwd = req.headers['x-forwarded-for'];
-  if (fwd) return String(fwd).split(',')[0].trim();
-  return (req.socket && req.socket.remoteAddress) || 'unknown';
-}
-
-async function appendAudit(action, req) {
+async function appendAudit(action, adminName) {
   try {
     const redis = getRedis();
     const entry = {
       action: String(action).slice(0, 200),
       ts: Date.now(),
-      ip: getClientIp(req)
+      admin: (adminName && String(adminName).trim().slice(0, 60)) || 'Unknown'
     };
     await redis.lpush(AUDIT_KEY, JSON.stringify(entry));
     await redis.ltrim(AUDIT_KEY, 0, MAX_ENTRIES - 1);

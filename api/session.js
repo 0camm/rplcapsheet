@@ -1,11 +1,11 @@
-const { isAdminRequest } = require('./_lib/auth');
+const { getAdminSession } = require('./_lib/auth');
 
 module.exports = async function handler(req, res) {
-  let authed = false;
+  let session = null;
   try {
-    authed = isAdminRequest(req);
+    session = getAdminSession(req);
   } catch (e) {
-    authed = false;
+    session = null;
   }
-  return res.status(200).json({ authed });
+  return res.status(200).json({ authed: !!session, name: session ? session.name : null });
 };

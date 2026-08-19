@@ -16,6 +16,11 @@ module.exports = async function handler(req, res) {
     try { body = JSON.parse(body); } catch (e) { body = {}; }
   }
   const password = body && typeof body.password === 'string' ? body.password : '';
+  const name = body && typeof body.name === 'string' ? body.name.trim().slice(0, 60) : '';
+
+  if (!name) {
+    return res.status(400).json({ error: 'Enter your name.' });
+  }
 
   // Simple constant-time-ish check via string compare is fine here since this
   // is a low-stakes single-password gate; the real protection is the signed
@@ -23,15 +28,15 @@ module.exports = async function handler(req, res) {
   if (!password || password !== process.env.ADMIN_PASSWORD) {
     // Small delay to make brute forcing slightly less trivial.
     await new Promise(r => setTimeout(r, 400));
-    await appendAudit('Failed admin login attempt', req);
+    await appendAudit('Failed admin login attempt', name);
     return res.status(401).json({ error: 'Incorrect password' });
   }
 
   try {
-    setSessionCookie(res);
+    setSessionCookie(res, name);
   } catch (e) {
     return res.status(500).json({ error: e.message });
   }
-  await appendAudit('Admin logged in', req);
-  return res.status(200).json({ ok: true });
+  await appendAudit('Admin logged in', name);
+  return res.status(200).json({ ok: true, name });
 };

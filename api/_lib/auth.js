@@ -56,15 +56,24 @@ function parseCookies(req) {
   return out;
 }
 
-function isAdminRequest(req) {
+function getAdminSession(req) {
   const cookies = parseCookies(req);
   const token = cookies[COOKIE_NAME];
   const payload = verify(token);
-  return !!(payload && payload.role === 'admin');
+  if (!payload || payload.role !== 'admin') return null;
+  return payload; // { role, name, exp }
 }
 
-function setSessionCookie(res) {
-  const token = sign({ role: 'admin', exp: Date.now() + SESSION_HOURS * 60 * 60 * 1000 });
+function isAdminRequest(req) {
+  return !!getAdminSession(req);
+}
+
+function setSessionCookie(res, name) {
+  const token = sign({
+    role: 'admin',
+    name: String(name || '').trim().slice(0, 60) || 'Unknown',
+    exp: Date.now() + SESSION_HOURS * 60 * 60 * 1000
+  });
   const maxAge = SESSION_HOURS * 60 * 60;
   res.setHeader('Set-Cookie', `${COOKIE_NAME}=${token}; HttpOnly; Secure; SameSite=Strict; Path=/; Max-Age=${maxAge}`);
 }
@@ -73,4 +82,4 @@ function clearSessionCookie(res) {
   res.setHeader('Set-Cookie', `${COOKIE_NAME}=; HttpOnly; Secure; SameSite=Strict; Path=/; Max-Age=0`);
 }
 
-module.exports = { isAdminRequest, setSessionCookie, clearSessionCookie };
+module.exports = { isAdminRequest, getAdminSession, setSessionCookie, clearSessionCookie };
