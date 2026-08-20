@@ -68,18 +68,27 @@ function isAdminRequest(req) {
   return !!getAdminSession(req);
 }
 
-function setSessionCookie(res, name) {
+function isHttps(req) {
+  // Vercel terminates TLS upstream, so check the forwarded proto header;
+  // fall back to req.secure-ish checks for local `vercel dev` over http.
+  const proto = (req && req.headers && req.headers['x-forwarded-proto']) || '';
+  return proto.split(',')[0].trim() === 'https';
+}
+
+function setSessionCookie(res, name, req) {
   const token = sign({
     role: 'admin',
     name: String(name || '').trim().slice(0, 60) || 'Unknown',
     exp: Date.now() + SESSION_HOURS * 60 * 60 * 1000
   });
   const maxAge = SESSION_HOURS * 60 * 60;
-  res.setHeader('Set-Cookie', `${COOKIE_NAME}=${token}; HttpOnly; Secure; SameSite=Strict; Path=/; Max-Age=${maxAge}`);
+  const secureFlag = !req || isHttps(req) ? ' Secure;' : '';
+  res.setHeader('Set-Cookie', `${COOKIE_NAME}=${token}; HttpOnly;${secureFlag} SameSite=Strict; Path=/; Max-Age=${maxAge}`);
 }
 
-function clearSessionCookie(res) {
-  res.setHeader('Set-Cookie', `${COOKIE_NAME}=; HttpOnly; Secure; SameSite=Strict; Path=/; Max-Age=0`);
+function clearSessionCookie(res, req) {
+  const secureFlag = !req || isHttps(req) ? ' Secure;' : '';
+  res.setHeader('Set-Cookie', `${COOKIE_NAME}=; HttpOnly;${secureFlag} SameSite=Strict; Path=/; Max-Age=0`);
 }
 
 module.exports = { isAdminRequest, getAdminSession, setSessionCookie, clearSessionCookie };

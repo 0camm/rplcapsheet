@@ -8,7 +8,7 @@ module.exports = async function handler(req, res) {
   }
   let session = null;
   try { session = getAdminSession(req); } catch (e) {}
-  clearSessionCookie(res);
+  clearSessionCookie(res, req);
   if (session) await appendAudit('Admin logged out', session.name);
   return res.status(200).json({ ok: true });
 };

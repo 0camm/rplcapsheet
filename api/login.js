@@ -33,7 +33,7 @@ module.exports = async function handler(req, res) {
   }
 
   try {
-    setSessionCookie(res, name);
+    setSessionCookie(res, name, req);
   } catch (e) {
     return res.status(500).json({ error: e.message });
   }
