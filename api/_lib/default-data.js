@@ -1,13 +1,16 @@
 const DEFAULT_DATA = {
   tiers: [
-    { id: 't1', label: '$22M', players: ['zPud', 'Tsutsumi', 'Cahmmie', 'Slapclosed'] },
-    { id: 't2', label: '$20M', players: ['Rail', 'Shawn', 'Tom'] },
-    { id: 't3', label: '$18M', players: ['Cal', 'Berry', 'Loq'] },
-    { id: 't4', label: '$15M', players: ['Chris', 'Tax', 'Aether', 'Norrthside', 'Roji', 'Love'] },
-    { id: 't5', label: '$12M', players: ['Jax', 'Mari', 'Acro', 'Oil', 'Dom'] },
-    { id: 't6', label: '$10M', players: ['Bleed', 'Defencse', 'Slacky', 'Firxly', 'Works0g', 'Relays', 'Javon', 'Logs', 'D4meh', 'Kai', 'Minis', 'Pox', 'Aupkf', 'Cub'] },
-    { id: 't7', label: '$8M', players: ['Popthem10s', 'MaybeLamelo', 'LilSigma', 'Underr4te', 'Partum', 'mwmwmw', 'Cartier', 'Lilpnk', 'Zadet', 'Bosh', 'Combat', 'Eazy', 'Ballot', 'Aimcancel', 'Sinister', 'Younzies'] },
-    { id: 't8', label: '$5M', players: ['Cam', 'Riri', 'V6tus', 'Michaelcomp', 'Melo', 'Gwobal', 'SheSaidSizeMatter', 'Kazi', 'ExoticTiger', 'Horrifyns', 'Durkio', 'Ch_ef75', 'Omx', 'Quayarchive', 'Bomber', 'Ben', 'Loco', 'Peakinzz', 'Paless1', 'Kage', 'Random', 'Ire', 'Mikey', 'Dohziez', '24kslxckz', 'Pekka', 'LeRanges', 'Odipapedoit', 'Zion', 'Trigg', 'Hidingfromfailure', 'WashedJoe', 'Funnybear6'] }
+    { id: 't1', label: '$24M', players: ['zPud'] },
+    { id: 't2', label: '$22M', players: ['Slapclosed', 'Tsutsumi', 'Berry', 'Cahmmie', 'Tom', 'Shawn'] },
+    { id: 't3', label: '$20M', players: ['Cal', 'Loq', 'Tax', 'Rail', 'Pox'] },
+    { id: 't4', label: '$18M', players: ['Chris', 'Aether', 'Norrthside', 'Love', 'Roji'] },
+    { id: 't5', label: '$16M', players: ['Defencse', 'Slacky', 'Bleed', 'Relays', 'Kai', 'Jax', 'Acro'] },
+    { id: 't6', label: '$14M', players: ['Firxly', 'Cub', 'Underr4te', 'Aupkf', 'Logs', 'Minis', 'D4meh', 'Zulifix', 'Counted', 'Works0g', 'Oil', 'Mari', 'Dom'] },
+    { id: 't7', label: '$12M', players: ['Javon', 'LilSigma', 'Cartier', 'Bosh', 'Ball0t', 'Sinister', 'Aimcancel', 'Rissa', 'Lilpnk', 'Zadet'] },
+    { id: 't8', label: '$10M', players: ['Eazy', 'Combat', 'MaybeLamelo', 'Popthem10s', 'Random', 'Atlas', 'mwmwmw'] },
+    { id: 't9', label: '$8M', players: ['Partum', 'Kage', 'Riri', 'SheSaidSizeMatter', 'Bomber', 'Ben', 'Funnybear6', 'Gwobal', 'Peakinzzz', 'Paless1', 'Kazi', 'Horrifyns', 'Conzlx', 'Cam'] },
+    { id: 't10', label: '$6M', players: ['Ch_ef75', 'Dohziez', 'Ire', 'Mikey', 'LeRanges', 'Odipapedoit', 'Trigg', 'Zion', 'Hidingfromfailure', 'WashedJoe', 'Pekka'] },
+    { id: 't11', label: '$4M', players: ['Durkio', 'Omx', 'Quayarchive', 'Melo', 'Michaelcomp', 'V6tus', 'Loco', 'Patpat', 'Kill', 'Mrfoldenking1', 'ExoticTiger', 'Carson', 'Bones', 'Chaos', 'Chip', 'Twixxy'] }
   ]
 };
 
