@@ -83,12 +83,12 @@ function setSessionCookie(res, name, req) {
   });
   const maxAge = SESSION_HOURS * 60 * 60;
   const secureFlag = !req || isHttps(req) ? ' Secure;' : '';
-  res.setHeader('Set-Cookie', `${COOKIE_NAME}=${token}; HttpOnly;${secureFlag} SameSite=Strict; Path=/; Max-Age=${maxAge}`);
+  res.setHeader('Set-Cookie', `${COOKIE_NAME}=${token}; HttpOnly;${secureFlag} SameSite=Lax; Path=/; Max-Age=${maxAge}`);
 }
 
 function clearSessionCookie(res, req) {
   const secureFlag = !req || isHttps(req) ? ' Secure;' : '';
-  res.setHeader('Set-Cookie', `${COOKIE_NAME}=; HttpOnly;${secureFlag} SameSite=Strict; Path=/; Max-Age=0`);
+  res.setHeader('Set-Cookie', `${COOKIE_NAME}=; HttpOnly;${secureFlag} SameSite=Lax; Path=/; Max-Age=0`);
 }
 
 module.exports = { isAdminRequest, getAdminSession, setSessionCookie, clearSessionCookie };
